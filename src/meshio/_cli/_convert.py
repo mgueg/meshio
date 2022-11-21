@@ -62,7 +62,7 @@ def convert(args):
     if args.int_data_to_sets:
         for key in mesh.point_data:
             mesh.point_data_to_sets(key)
-        for key in mesh.cell_data:
+        for key in mesh.cell_data.copy():
             mesh.cell_data_to_sets(key)
 
     # write it out
