@@ -52,6 +52,8 @@ def convert(args):
     # read mesh data
     mesh = read(args.infile, file_format=args.input_format)
 
+    print("MOD : ",mesh)
+
     # Some converters (like VTK) require `points` to be contiguous.
     mesh.points = np.ascontiguousarray(mesh.points)
 
@@ -63,6 +65,7 @@ def convert(args):
         for key in mesh.point_data:
             mesh.point_data_to_sets(key)
         for key in mesh.cell_data.copy():
+            print("MOD args.int_data_to_sets : ", key)
             mesh.cell_data_to_sets(key)
 
     # write it out
@@ -72,4 +75,5 @@ def convert(args):
     if args.ascii:
         kwargs["binary"] = False
 
+    print("MOD : ",list(mesh.cell_sets.keys()))
     write(args.outfile, mesh, **kwargs)
