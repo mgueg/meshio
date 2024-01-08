@@ -336,11 +336,6 @@ def _write_nodes(fh, points, float_fmt, binary):
 
 
 def _write_elements(fh, cells: list[CellBlock], tag_data, binary: bool):
-    
-    warn("-----------------------------------------------------------")
-    warn("MODIFIED by me in _gmsh22.py source code in _write_elements")
-    warn("-----------------------------------------------------------")
-    
     # write elements
     fh.write(b"$Elements\n")
 
@@ -354,18 +349,11 @@ def _write_elements(fh, cells: list[CellBlock], tag_data, binary: bool):
         node_idcs = _meshio_to_gmsh_order(cell_type, cell_block.data)
 
         tags = []
-        for name in ["cell_tags", "gmsh:physical", "gmsh:geometrical"]:
+        for name in ["gmsh:physical", "gmsh:geometrical", "cell_tags"]:
             if name in tag_data:
-                print("add name {} in tags".format(name))
-                if (tag_data[name][k].ndim>1):
-                    print(" squeeze dimension ")
-                    tag_data[name][k] = np.squeeze(tag_data[name][k])
                 tags.append(tag_data[name][k])
-        print(" len(tags)",len(tags))
-        print([a.shape for a in tags])
-        print([np.unique(a) for a in tags])
         fcd = np.concatenate([tags]).astype(c_int).T
-        
+
         if len(fcd) == 0:
             fcd = np.empty((len(node_idcs), 0), dtype=c_int)
 
