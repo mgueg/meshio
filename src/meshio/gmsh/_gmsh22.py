@@ -276,7 +276,8 @@ def write(filename, mesh, float_fmt=".16e", binary=True):
     tag_data = {}
     cell_data = {}
     for key, d in mesh.cell_data.items():
-        if key in ["gmsh:physical", "gmsh:geometrical", "cell_tags"]:
+        if key in ["gmsh:physical", "gmsh:geometrical", "cell_tags", "Cell Sets"]:
+            print("MOD found : ",key)
             tag_data[key] = d
         else:
             cell_data[key] = d
@@ -284,7 +285,7 @@ def write(filename, mesh, float_fmt=".16e", binary=True):
     # Always include the physical and geometrical tags. See also the quoted excerpt from
     # the gmsh documentation in the _read_cells_ascii function above.
     for tag in ["gmsh:physical", "gmsh:geometrical"]:
-        if tag not in tag_data:
+        if ((tag not in tag_data) and ("Cell Sets" not in tag_data)) :
             warn(f"Appending zeros to replace the missing {tag[5:]} tag data.")
             tag_data[tag] = [
                 np.zeros(len(cell_block), dtype=c_int) for cell_block in mesh.cells
@@ -336,6 +337,11 @@ def _write_nodes(fh, points, float_fmt, binary):
 
 
 def _write_elements(fh, cells: list[CellBlock], tag_data, binary: bool):
+
+    warn("-----------------------------------------------------------")
+    warn("MODIFIED by me in _gmsh22.py source code in _write_elements")
+    warn("-----------------------------------------------------------")
+
     # write elements
     fh.write(b"$Elements\n")
 
@@ -349,11 +355,18 @@ def _write_elements(fh, cells: list[CellBlock], tag_data, binary: bool):
         node_idcs = _meshio_to_gmsh_order(cell_type, cell_block.data)
 
         tags = []
-        for name in ["gmsh:physical", "gmsh:geometrical", "cell_tags"]:
+        for name in ["cell_tags", "gmsh:physical", "gmsh:geometrical", "Cell Sets"]:
             if name in tag_data:
+                print("MOD add name {} in tags".format(name))
+                if (tag_data[name][k].ndim>1):
+                    print("MOD  squeeze dimension ")
+                    tag_data[name][k] = np.squeeze(tag_data[name][k])
                 tags.append(tag_data[name][k])
+        print("MOD len(tags) : ",len(tags))
+        print("MOD : ",[a.shape for a in tags])
+        print("MOD : ",[np.unique(a) for a in tags])
         fcd = np.concatenate([tags]).astype(c_int).T
-
+ 
         if len(fcd) == 0:
             fcd = np.empty((len(node_idcs), 0), dtype=c_int)
 
