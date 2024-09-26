@@ -2,6 +2,7 @@
 name = "meshio"
 version = "5.0.0"
 description = "I/O for many mesh formats"
+dynamic = ["scripts"]
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE.txt"}
@@ -27,7 +28,8 @@ classifiers = [
 ]
 dependencies = [
   "importlib_metadata; python_version<'3.8'",
-  "numpy>=1.20.0"
+  "numpy>=1.20.0,<2.0",
+  "rich"
 ]
 
 [project.optional-dependencies]
@@ -41,6 +43,7 @@ homepage = "https://github.com/nschloe/meshio"
 code = "https://github.com/nschloe/meshio"
 issues = "https://github.com/nschloe/meshio/issues"
 funding = "https://github.com/sponsors/nschloe"
+
 
 [project.entry-points.console_scripts]
 meshio = "meshio._cli:main"
