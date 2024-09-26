@@ -276,11 +276,14 @@ def write(filename, mesh, float_fmt=".16e", binary=True):
     tag_data = {}
     cell_data = {}
     for key, d in mesh.cell_data.items():
-        if key in ["gmsh:physical", "gmsh:geometrical", "cell_tags", "Cell Sets"]:
-            print("MOD found : ",key)
+        if key in ["gmsh:physical", "gmsh:geometrical", "cell_tags", "Cell Sets", "ESET"]:
             tag_data[key] = d
         else:
             cell_data[key] = d
+    #for key, d in mesh.cell_sets.items():
+    #    if "ESET" in key:
+    #        i = key.split("-")[-1]
+    #        tag_data["Cell Sets-"+i] = d
 
     # Always include the physical and geometrical tags. See also the quoted excerpt from
     # the gmsh documentation in the _read_cells_ascii function above.
@@ -348,7 +351,7 @@ def _write_elements(fh, cells: list[CellBlock], tag_data, binary: bool):
     # count all cells
     total_num_cells = sum(len(cell_block) for cell_block in cells)
     fh.write(f"{total_num_cells}\n".encode())
-
+    #print("MOD tag passed to elements writing is ",tag_data)
     consecutive_index = 0
     for k, cell_block in enumerate(cells):
         cell_type = cell_block.type
@@ -362,11 +365,28 @@ def _write_elements(fh, cells: list[CellBlock], tag_data, binary: bool):
                     print("MOD  squeeze dimension ")
                     tag_data[name][k] = np.squeeze(tag_data[name][k])
                 tags.append(tag_data[name][k])
-        print("MOD len(tags) : ",len(tags))
-        print("MOD : ",[a.shape for a in tags])
-        print("MOD : ",[np.unique(a) for a in tags])
+        #print("MOD len(tags) : ",len(tags))
+        #print("MOD : ",[a.shape for a in tags])
+        unique_tags = [np.unique(a) for a in tags]
+        print("MOD unique values for set: ",unique_tags)
+        sets_size = [len(np.unique(a)) for a  in tags]
+        #print("MOD : ",len(sets_size)==1)
+        #print("MOD : ",np.any(np.diff(unique_tags[0])!=1)) 
+        if (len(sets_size)==1 and np.any(np.diff(unique_tags[0])!=1)):
+            index = np.arange(sets_size[0],dtype=np.int64)
+            new_tags = [np.zeros_like(a) for a in tags]
+            for t,tag in enumerate(tags):
+                for i,v in enumerate(tag):
+                    if len(np.nonzero(unique_tags[t]==v)[0]==1):
+                        indexed = np.nonzero(unique_tags[t]==v)[0][0]
+                        new_tags[t][i] = index[indexed]
+            tags = new_tags    
+        
+            unique_tags = [np.unique(a) for a in tags]
+            print("MOD new (consecutive) tags [Better for fox solver]  : ",unique_tags)
+            
         fcd = np.concatenate([tags]).astype(c_int).T
- 
+        
         if len(fcd) == 0:
             fcd = np.empty((len(node_idcs), 0), dtype=c_int)
 

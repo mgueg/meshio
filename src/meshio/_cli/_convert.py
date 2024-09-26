@@ -62,9 +62,9 @@ def convert(args):
         mesh.cell_sets_to_data()
 
     if args.int_data_to_sets:
-        for key in mesh.point_data:
+        for key in list(mesh.point_data):
             mesh.point_data_to_sets(key)
-        for key in mesh.cell_data.copy():
+        for key in list(mesh.cell_data):
             print("MOD args.int_data_to_sets : ", key)
             mesh.cell_data_to_sets(key)
 
@@ -75,5 +75,5 @@ def convert(args):
     if args.ascii:
         kwargs["binary"] = False
 
-    print("MOD : ",list(mesh.cell_sets.keys()))
+    #print("MOD : ",list(mesh.cell_sets.keys()))
     write(args.outfile, mesh, **kwargs)

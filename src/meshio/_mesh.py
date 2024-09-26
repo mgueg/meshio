@@ -316,6 +316,9 @@ class Mesh:
     def cell_sets_to_data(self, data_name: str | None = None):
         # If possible, convert cell sets to integer cell data. This is possible if all
         # cells appear exactly in one group.
+        warn("-----------------------------------------------------------")
+        warn("MODIFIED by me in _mesh.py source code in cell_sets_to_data")
+        warn("-----------------------------------------------------------")
         default_value = -1
         if len(self.cell_sets) > 0:
             intfun = []
@@ -338,8 +341,10 @@ class Mesh:
                     break
 
             if data_name is None:
-                data_name = "-".join(self.cell_sets.keys())
+                data_name = "Cell Sets"
+                #data_name = "-".join(self.cell_sets.keys())
             self.cell_data[data_name] = intfun
+            #print("MOD self.cell_data[",data_name,"] == ",self.cell_data[data_name])
             self.cell_sets = {}
 
     def point_sets_to_data(self, join_char: str = "-") -> None:
