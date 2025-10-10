@@ -203,7 +203,7 @@ def _read_elements(
     data = []
     cell_data = {}
     cell_sets = {k: [None] * num_entity_blocks for k in field_data.keys()}
-
+    # print("MOD - input physical_tags {}".format(physical_tags))
     for k in range(num_entity_blocks):
         # entityDim(int) entityTag(int) elementType(int) numElements(size_t)
         dim, tag, type_ele = fromfile(f, c_int, 3)
@@ -229,6 +229,7 @@ def _read_elements(
 
         # Find physical tag, if defined; else it is None.
         pt = None if not physical_tags else physical_tags[dim][tag]
+        # print("MOD - pt (physical tag) : {}".format(pt))
         # Bounding entities (of lower dimension) if defined. Else it is None.
         if dim > 0 and bounding_entities:  # Points have no boundaries
             be = bounding_entities[dim][tag]
@@ -297,6 +298,10 @@ def write(filename, mesh, float_fmt=".16e", binary=True):
     """Writes msh files, cf.
     <http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format>.
     """
+    warn("-----------------------------------------------------------")
+    warn("MODIFIED by me in _gmsh41.py source code in _write")
+    warn("-----------------------------------------------------------")
+
     # Filter the point data: gmsh:dim_tags are tags, the rest is actual point data.
     point_data = {}
     for key, d in mesh.point_data.items():
@@ -308,10 +313,24 @@ def write(filename, mesh, float_fmt=".16e", binary=True):
     tag_data = {}
     cell_data = {}
     for key, d in mesh.cell_data.items():
-        if key in ["gmsh:physical", "gmsh:geometrical", "cell_tags"]:
+        if key in ["gmsh:physical", "gmsh:geometrical", "cell_tags", "Cell Sets", "ESET"]:
+            warn(f"found '{key}' in cell data : pass it into 'tag_data'")
             tag_data[key] = d
         else:
             cell_data[key] = d
+
+    # warn(" before write - tag data keys : '{}'".format(tag_data.keys()))
+    # warn(" before write - cell data keys : '{}'".format(cell_data.keys()))
+    # warn(" before write - tag data vlues : '{}'".format(list(tag_data.values())))
+
+    # Always include the physical and geometrical tags. See also the quoted excerpt from
+    # the gmsh documentation in the _read_cells_ascii function above.
+    for tag in ["gmsh:physical", "gmsh:geometrical"]:
+        if ((tag not in tag_data) and ("Cell Sets" not in tag_data) and ("MATERIAL-ID" not in tag_data)) :
+            warn(f"Appending zeros to replace the missing {tag[5:]} tag data.")
+            tag_data[tag] = [
+                np.zeros(len(cell_block), dtype=c_int) for cell_block in mesh.cells
+            ]
 
     with open(filename, "wb") as fh:
         file_type = 1 if binary else 0
@@ -640,6 +659,7 @@ def _write_elements(fh, cells, tag_data, binary: bool) -> None:
     """
     fh.write(b"$Elements\n")
 
+    warn(" tag_data (keys : {}) will be not written in gmsh 4.1".format(tag_data.keys()))
     total_num_cells = sum(len(c) for c in cells)
     num_blocks = len(cells)
     min_element_tag = 1
@@ -663,6 +683,13 @@ def _write_elements(fh, cells, tag_data, binary: bool) -> None:
             # The entity tag should be equal within a CellBlock
             if "gmsh:geometrical" in tag_data:
                 entity_tag = tag_data["gmsh:geometrical"][ci][0]
+            # elif "gmsh:physical" in tag_data:
+            #     entity_tag = tag_data["gmsh:physical"][ci][0]
+            # elif "Cell Sets" in tag_data:
+            #     entity_tag = tag_data["Cell Sets"][ci][0]
+            # elif "MATERIAL-ID" in tag_data:
+            #     entity_tag = tag_data["Cell Sets"][ci][0]
+            #     print("ok entity_tag = {}".format(entity_tag))
             else:
                 entity_tag = 0
 
@@ -704,11 +731,20 @@ def _write_elements(fh, cells, tag_data, binary: bool) -> None:
             # The entity tag should be equal within a CellBlock
             if "gmsh:geometrical" in tag_data:
                 entity_tag = tag_data["gmsh:geometrical"][ci][0]
+            # elif "gmsh:physical" in tag_data:
+            #     entity_tag = tag_data["gmsh:physical"][ci][0]
+            # elif "Cell Sets" in tag_data:
+            #     entity_tag = tag_data["Cell Sets"][ci][0]
+            # elif "MATERIAL-ID" in tag_data:
+            #     entity_tag = tag_data["MATERIAL-ID"][ci][0]
+            #     print("ok entity_tag = {}".format(entity_tag))
             else:
                 entity_tag = 0
 
+            #print("MOD entity tag -> ci[{}]: {} ".format(ci,entity_tag))
             cell_type = _meshio_to_gmsh_type[cell_block.type]
             n = len(cell_block.data)
+            #print(" -> ",np.arange(tag0, tag0 + n))
             fh.write(f"{cell_block.dim} {entity_tag} {cell_type} {n}\n".encode())
             np.savetxt(
                 fh,
